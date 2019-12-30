@@ -11,9 +11,9 @@
 #include<arpa/inet.h>
 #include<time.h>
 
-#define SNAP_LEN 1518 //設定一個封包最多捕獲1518 bytes
-#define SIZE_ETHERNET 14 //header 必定14 bytes
-#define ETHER_ADDR_LEN 6 //address 必定6 bytes
+#define SNAP_LEN 1518 //a package capture 1518 bytes at most
+#define SIZE_ETHERNET 14 //header is 14 bytes
+#define ETHER_ADDR_LEN 6 //address is 6 bytes
 char IP1[100][100];
 char IP2[100][100];
 int ip_count=0;
@@ -109,7 +109,7 @@ void callback(u_char *args, const struct pcap_pkthdr *header, const u_char *pack
 	int i=0,rp=0;
 
 
-//	static int count = 1;		//封包計數
+//	static int count = 1;		//package counting
 //declare pointers to packet headers
 	const Ethernet *ethernet;	//The Ethernet header
 	const IP *ip;				//The IP header
@@ -120,7 +120,6 @@ void callback(u_char *args, const struct pcap_pkthdr *header, const u_char *pack
 	struct tm *lt;
 	char timestr[80];
 	time_t local_tv_sec;
-
 	int size_ip;
 	int size_tcp;
 	int size_udp;
@@ -131,8 +130,7 @@ void callback(u_char *args, const struct pcap_pkthdr *header, const u_char *pack
 	ethernet = (Ethernet*)(packet);
 //計算IP header offset
 	ip = (IP*)(packet + SIZE_ETHERNET);
-	size_ip = IP_HL(ip)*4;	//IP header長度
-	//////////////my try
+	size_ip = IP_HL(ip)*4;	//IP header length
 	if (num_packets!=count)
 	{
 		printf("\nPacket number %d:\n", count);
@@ -159,7 +157,6 @@ void callback(u_char *args, const struct pcap_pkthdr *header, const u_char *pack
 		ip_count++;
         }
 	signal(SIGINT,ctrl_c);
-	/////////my try
 		count++;
 		switch(ip->ip_p) {
 			case IPPROTO_TCP:
@@ -178,20 +175,10 @@ void callback(u_char *args, const struct pcap_pkthdr *header, const u_char *pack
 				printf("   Dst port: %d\n", ntohs(tcp->th_dport));
 				printf("     Length: %d bytes\n", header->len);
 				printf("       Time: %s\n", timestr);
-/*
-//define/compute tcp payload (segment) offset
-payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
-//compute tcp payload (segment) size
-size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
-//Print payload data (binary, not string)
-if(size_payload > 0) {
-	printf("   Payload (%d bytes):\n", size_payload);
-	print_payload(payload, size_payload);
-}
-*/
+
 				break;
 			case IPPROTO_UDP:
-//計算UDP header offset
+//calculate UDP header offset
 				printf("   Protocol: UDP\n");
 				udp = (UDP*)(packet + SIZE_ETHERNET + size_ip);
 				printf("       From: %s\n", inet_ntoa(ip->ip_src));
@@ -201,15 +188,6 @@ if(size_payload > 0) {
 				printf("     Length: %d bytes\n", ntohs(udp->uh_length));
 				//printf("    UDP sum: %d\n", ntohs(udp->uh_sum));
 				printf("       Time: %s\n", timestr);
-/*
-//define/compute udp payload (segment) offset
-payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + 8);
-//compute udp payload (segment) size
-size_payload = ntohs(ip->ip_len) - (size_ip + 8);
-if(size_payload > 0) {
-	printf("  UDP size_payload: %d\n", size_payload);
-}
-*/
 				break;
 			case IPPROTO_ICMP:
 				printf("   Protocol: ICMP\n");
@@ -238,30 +216,21 @@ if(size_payload > 0) {
 int main(int argc, char *argv[])
 {
 
-	char *dev = NULL;				//網路設備名稱
+	char *dev = NULL;				//internet name
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *handle;
 
-	const char *filter= " ";		//過濾
+	const char *filter= " ";		//filter
 	struct bpf_program fp;			//compiled filter program (expression)
 	bpf_u_int32 mask;				//子網路遮罩
 	bpf_u_int32 net;				//ip
-
-//	int num_packets = -1;			//獲取封包數量
-
-
 	dev = pcap_lookupdev(errbuf);
 	if(!dev) {
 		printf("Couldn't find default device: %s\n", errbuf);
 		exit(1);
 	}
 
-//command line 輸入過濾條件
 	printf("argc:%d\n",argc);
-	/*if(argc == 2) {
-		filter = argv[1]; 
-		printf("filter:%s\n",argv[1]);
-	}*/
 	int read=0;
 	char pcap_file[1024];
 	if(argc == 3) {
@@ -274,18 +243,14 @@ int main(int argc, char *argv[])
 
 //獲取設備ip與網路遮罩
 	if(pcap_lookupnet(dev, &net, &mask, errbuf) == -1) {
-		printf("Couldn't get netmask for device: %s\n", errbuf);
+		printf("Netmask for device not found: %s\n", errbuf);
 		net = mask = 0;
 	}
 
 //Print
 	printf("Device: %s\n", dev);
 //printf("Number of packets: %d\n", num_packets);
-	if(!strcmp(filter ," ")) {
-		printf("Filter expression: N/A\n");
-	}else {
-		printf("Filter expression: %s\n", filter);
-	}
+
 //打開網絡接口
 //(接口名稱, 捕獲封包長度<max 65535>, 混雜模式, 可等待ms數
 	if(read==0)
@@ -301,24 +266,11 @@ int main(int argc, char *argv[])
 		printf("%s is not an Ethernet\n", dev);
 		exit(1);
 	}
-/*
-//編譯過濾條件
-	if(pcap_compile(handle, &fp, filter, 0, net) == -1) {
-		printf("Couldn't parse filter %s: %s\n", filter, pcap_geterr(handle));
-		exit(1);
-	}
 
-//設定過濾
-	if (pcap_setfilter(handle, &fp) == -1) {
-		printf("Couldn't install filter: %s\n", pcap_geterr(handle));
-		exit(1);
-	}
-*/
 //捕獲多個封包pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user);
 //每捕獲一個就調用callback指定的函式，可在函式中處理封包
 //cnt 捕獲封包個數(設為-1將一直捕獲）
 	pcap_loop(handle, num_packets, callback, NULL);
-
 //Clean
 	if(read==0)
 	{
@@ -394,7 +346,7 @@ void print_payload(const u_char *payload, int len)
 	int len_rem = len;
 	int line_width = 16;			/* number of bytes per line */
 	int line_len;
-	int offset = 0;					/* zero-based offset counter */
+	int offset = 0;				/* zero-based offset counter */
 	const u_char *ch = payload;
 
 	if (len <= 0)
